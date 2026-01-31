@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>PetroVálvulas 2026</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <link rel="manifest" href="manifest.json">
+    <style>
+        :root {
+            --verde-logo: #00843d; /* Verde da bandeira */
+            --amarelo-logo: #ffcc00; /* Amarelo ouro */
+            --bg: #f4f7f6;
+            --texto: #1d1d1b;
+        }
+        
+        * { box-sizing: border-box; touch-action: manipulation; }
+        
+        body { 
+            margin: 0; 
+            font-family: 'Segoe UI', Roboto, sans-serif; 
+            background: var(--bg); 
+            color: var(--texto);
+            padding-bottom: 40px;
+        }
+
+        header {
+            background: #ffffff;
+            padding: 15px;
+            display: flex;
+            justify-content: center;
+            border-bottom: 4px solid var(--verde-logo);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .logo-img {
+            max-width: 220px;
+            height: auto;
+        }
+
+        main { padding: 15px; }
+
+        .card {
+            background: #fff;
+            border-radius: 12px;
+            padding: 18px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            border-left: 5px solid var(--verde-logo);
+        }
+
+        h4 { margin: 0 0 15px 0; color: var(--verde-logo); text-transform: uppercase; font-size: 14px; letter-spacing: 1px; }
+
+        label { display: block; font-size: 11px; font-weight: 700; margin-bottom: 5px; color: #555; text-transform: uppercase; }
+
+        input, select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            margin-bottom: 15px;
+            background: #fff !important;
+            color: #000 !important;
+            -webkit-appearance: none; /* Remove estilo padrão do Safari/Chrome */
+        }
+
+        /* Destaque para os campos quando clicados */
+        input:focus, select:focus { border-color: var(--amarelo-logo); outline: none; box-shadow: 0 0 0 2px rgba(255, 204, 0, 0.2); }
+
+        .btn {
+            background: var(--verde-logo);
+            color: #fff;
+            border: 0;
+            padding: 18px;
+            width: 100%;
+            border-radius: 8px;
+            font-weight: 800;
+            font-size: 16px;
+            cursor: pointer;
+            text-transform: uppercase;
+            box-shadow: 0 4px 0 #005a2a;
+            transition: all 0.2s;
+        }
+
+        .btn:active { transform: translateY(2px); box-shadow: 0 2px 0 #005a2a; }
+
+        #status-sync {
+            display: none;
+            background: var(--amarelo-logo);
+            color: #000;
+            text-align: center;
+            padding: 8px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        @media (max-width: 600px) { .grid { grid-template-columns: 1fr; } }
+        /* Isso faz o texto do Nome do Poço aparecer sempre em maiúsculo na tela */
+#poco_id {
+    text-transform: uppercase;
+}
+
+/* Isso garante que a imagem do logo não ultrapasse o tamanho do cabeçalho */
+.logo-img {
+    max-width: 200px;
+    height: auto;
+    display: block;
+}
+    </style>
+</head>
+<body>
+
+<header>
+    <img src="./Petrovalvula.png.png" alt="PetroVálvulas" class="logo-img">
+</header>
+
+<div id="status-sync">⬆ SINCRONIZANDO COM A PLANILHA...</div>
+
+<main>
+    <div class="card">
+        <h4>Dados do Poço</h4>
+        <label>Nome do Poço</label>
+        <input type="text" id="poco_id" placeholder="Ex: RJS-01">
+        
+        <div class="grid">
+            <div>
+                <label>Data</label>
+                <input type="date" id="data_visita">
+            </div>
+            <div>
+                <label>Qtd Válvulas</label>
+                <input type="number" id="qtd_valvulas" placeholder="0" oninput="render()">
+            </div>
+        </div>
+
+        <label>Status do Poço</label>
+        <select id="status_poco">
+            <option>Produzindo</option>
+            <option>Injetando</option>
+            <option>Operando para capitação</option>
+            <option>Fechado</option>
+            <option>N/A</option>
+            <option>ND</option>
+            <option>Sem acesso</option>
+        </select>
+
+        <label>Método</label>
+        <select id="metodo_poco">
+            <option>UBM</option>
+            <option>BCS</option>
+            <option>BCP</option>
+            <option>Surgente</option>
+            <option>UBM duplo</option>
+            <option>Gás lift</option>
+            <option>Injetor</option>
+            <option>Capitação</option>
+            <option>N/A</option>
+            <option>ND</option>
+        </select>
+    </div>
+
+    <div id="cont"></div>
+
+    <button class="btn" onclick="save()">Salvar Dados</button>
+</main>
+
+<script>
+    // Registro do Service Worker para Offline
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('./sw.js').then(reg => console.log('Offline ok'));
+        });
+    }
+
+    function render() {
+        const n = document.getElementById('qtd_valvulas').value;
+        const cont = document.getElementById('cont');
+        cont.innerHTML = '';
+        for (let i = 1; i <= n; i++) {
+            cont.innerHTML += `
+            <div class="card val">
+                <h4>Válvula ${i}</h4>
+                <label>Local</label>
+                <select class="v-loc">
+                    <option>Pistoneio</option><option>Cabeça</option><option>Cabeça produção</option>
+                    <option>Mestra</option><option>Mestra Cima</option><option>Mestra Baixo</option>
+                    <option>Anular A</option><option>Anular A produção</option><option>Anular A de serviço</option><option>Anular B</option><option>Anular C</option><option>ND</option><option>Sem válvula</option>
+                </select>
+                
+                <div class="grid">
+                    <div>
+                        <label>Tipo</label>
+                        <select class="v-tip">
+                            <option>Gaveta</option><option>Esfera</option><option>Agulha(kerotest)</option><option>Borboleta</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label>Diâmetro</label>
+                        <select class="v-dia">
+                            <option>1/2"</option><option>1"</option><option>1 1/2"</option>
+                            <option>2"</option><option>2 1/16"</option><option>2 9/16"</option>
+                            <option>3"</option><option>3 1/8"</option><option>4"</option>
+                        </select>
+                    </div>
+                </div>
+
+                <label>Fabricante</label>
+                <input type="text" class="v-fab" placeholder="Ex: FMC">
+                
+                <label>Nº de Série</label>
+                <input type="text" class="v-ser">
+                
+                <label>Status</label>
+                <select class="v-st"><option>Aberta</option><option>Fechada</option></select>
+            </div>`;
+        }
+    }
+
+    function save() {
+        const d = {
+            p: document.getElementById('poco_id').value,
+            dt: document.getElementById('data_visita').value,
+            stP: document.getElementById('status_poco').value,
+            mt: document.getElementById('metodo_poco').value,
+            vs: Array.from(document.querySelectorAll('.val')).map(v => ({
+                l: v.querySelector('.v-loc').value,
+                t: v.querySelector('.v-tip').value,
+                d: v.querySelector('.v-dia').value,
+                f: v.querySelector('.v-fab').value,
+                s: v.querySelector('.v-ser').value,
+                st: v.querySelector('.v-st').value
+            }))
+        };
+        let f = JSON.parse(localStorage.getItem('f_v') || '[]');
+        f.push(d);
+        localStorage.setItem('f_v', JSON.stringify(f));
+        alert('Dados salvos no dispositivo!');
+        sync();
+    }
+
+    async function sync() {
+        if (!navigator.onLine) return;
+        let f = JSON.parse(localStorage.getItem('f_v') || '[]');
+        if (!f.length) return;
+        document.getElementById('status-sync').style.display = 'block';
+        for (let i = f.length - 1; i >= 0; i--) {
+            try {
+                await fetch('https://script.google.com/macros/s/AKfycbzHzlmv8tXDkXjqgD3nJgZj0ek6e923V-ekfkFNdNNnKo2nqDLYgBF_bhIjtu2px2KNWg/exec', {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    body: JSON.stringify(f[i])
+                });
+                f.splice(i, 1);
+            } catch (e) { console.log('Aguardando rede...'); }
+        }
+        localStorage.setItem('f_v', JSON.stringify(f));
+        document.getElementById('status-sync').style.display = 'none';
+    }
+    window.onload = sync;
+    window.addEventListener('online', sync);
+</script>
+</body>
+</html>
